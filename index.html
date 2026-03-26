@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Perceptron L vs T Classifier</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #f4f4f9; }
+        #grid { display: grid; grid-template-columns: repeat(3, 60px); grid-gap: 5px; justify-content: center; margin: 20px auto; }
+        .pixel { width: 60px; height: 60px; border: 1px solid #ccc; background: white; cursor: pointer; }
+        .pixel.active { background: #333; }
+        .controls { margin-top: 20px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; border-radius: 5px; border: 1px solid #999; }
+        #status { font-weight: bold; color: blue; margin-top: 15px; }
+        .data-log { font-size: 0.8em; color: #666; }
+    </style>
+</head>
+<body>
+
+    <h1>Perceptron: L vs T</h1>
+    <p>Draw an 'L' or 'T' on the grid below.</p>
+
+    <div id="grid">
+        <div class="pixel" onclick="toggle(this)" data-idx="0"></div>
+        <div class="pixel" onclick="toggle(this)" data-idx="1"></div>
+        <div class="pixel" onclick="toggle(this)" data-idx="2"></div>
+        <div class="pixel" onclick="toggle(this)" data-idx="3"></div>
+        <div class="pixel" onclick="toggle(this)" data-idx="4"></div>
+        <div class="pixel" onclick="toggle(this)" data-idx="5"></div>
+        <div class="pixel" onclick="toggle(this)" data-idx="6"></div>
+        <div class="pixel" onclick="toggle(this)" data-idx="7"></div>
+        <div class="pixel" onclick="toggle(this)" data-idx="8"></div>
+    </div>
+
+    <div class="controls">
+        <button onclick="addSample(1)">Annotate as "L" (1)</button>
+        <button onclick="addSample(0)">Annotate as "T" (0)</button>
+        <br>
+        <button onclick="autoGenerate100()" style="background: #e1f5fe;">Generate 100 Samples</button>
+        <button onclick="train()" style="background: #c8e6c9;">Train Perceptron</button>
+        <button onclick="predict()" style="background: #fff9c4;">Classify Grid</button>
+        <button onclick="clearGrid()">Clear Grid</button>
+    </div>
+
+    <div id="status">Ready</div>
+    <div class="data-log" id="log">Samples Collected: 0</div>
+
+    <script>
+        // Data and Perceptron Variables
+        let trainingData = []; // {input: [9 bits], label: 0 or 1}
+        let weights = new Array(9).fill(0);
+        let bias = 0;
+        let lr = 0.1;
+
+        // UI Logic: Toggle grid pixels
+        function toggle(el) {
+            el.classList.toggle('active');
+        }
+
+        function clearGrid() {
+            document.querySelectorAll('.pixel').forEach(p => p.classList.remove('active'));
+        }
+
+        function getGridInput() {
+            return Array.from(document.querySelectorAll('.pixel')).map(p => p.classList.contains('active') ? 1 : 0);
+        }
+
+        // Annotation: Add current grid to training set
+        function addSample(label) {
+            const input = getGridInput();
+            trainingData.push({ input, label });
+            updateLog();
+            clearGrid();
+            document.getElementById('status').innerText = "Added sample for " + (label === 1 ? 'L' : 'T');
+        }
+
+        function updateLog() {
+            document.getElementById('log').innerText = `Samples Collected: ${trainingData.length}`;
+        }
+
+        // Requirement: Minimum 100 samples
+        // Generates variations of L and T by adding slight noise to base patterns
+        function autoGenerate100() {
+            const baseL = [1,0,0, 1,0,0, 1,1,1];
+            const baseT = [1,1,1, 0,1,0, 0,1,0];
+
+            for (let i = 0; i < 50; i++) {
+                trainingData.push({ input: addNoise(baseL), label: 1 });
+                trainingData.push({ input: addNoise(baseT), label: 0 });
+            }
+            updateLog();
+            document.getElementById('status').innerText = "Generated 100 samples (50 L, 50 T)";
+        }
+
+        function addNoise(pattern) {
+            let noisy = [...pattern];
+            // Randomly flip 1 pixel to create a variation
+            let idx = Math.floor(Math.random() * 9);
+            noisy[idx] = noisy[idx] === 1 ? 0 : 1;
+            return noisy;
+        }
+
+        // Perceptron Algorithm
+        function train() {
+            if (trainingData.length === 0) return alert("Add data first!");
+            
+            // Train for 50 epochs
+            for (let epoch = 0; epoch < 50; epoch++) {
+                trainingData.forEach(sample => {
+                    let sum = bias;
+                    for (let i = 0; i < 9; i++) sum += sample.input[i] * weights[i];
+                    
+                    let prediction = sum > 0 ? 1 : 0;
+                    let error = sample.label - prediction;
+
+                    // Update Weights and Bias
+                    if (error !== 0) {
+                        for (let i = 0; i < 9; i++) {
+                            weights[i] += lr * error * sample.input[i];
+                        }
+                        bias += lr * error;
+                    }
+                });
+            }
+            document.getElementById('status').innerText = "Training Complete!";
+        }
+
+        function predict() {
+            const input = getGridInput();
+            let sum = bias;
+            for (let i = 0; i < 9; i++) sum += input[i] * weights[i];
+            
+            let result = sum > 0 ? "L" : "T";
+            document.getElementById('status').innerText = "Prediction: " + result;
+        }
+    </script>
+</body>
+</html>
