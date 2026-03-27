@@ -2,59 +2,70 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Perceptron L vs T Classifier</title>
+    <title>Perceptron: L vs T</title>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #f4f4f9; }
-        #grid { display: grid; grid-template-columns: repeat(3, 60px); grid-gap: 5px; justify-content: center; margin: 20px auto; }
-        .pixel { width: 60px; height: 60px; border: 1px solid #ccc; background: white; cursor: pointer; }
-        .pixel.active { background: #333; }
-        .controls { margin-top: 20px; }
-        button { padding: 10px 20px; margin: 5px; cursor: pointer; border-radius: 5px; border: 1px solid #999; }
-        #status { font-weight: bold; color: blue; margin-top: 15px; }
-        .data-log { font-size: 0.8em; color: #666; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #f0f2f5; padding: 20px; }
+        /* 4 columns */
+        #grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 60px); 
+            grid-gap: 8px; 
+            justify-content: center; 
+            margin: 20px auto; 
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: fit-content;
+        }
+        .pixel { width: 60px; height: 60px; border: 1px solid #ddd; background: #fafafa; cursor: pointer; border-radius: 4px; transition: 0.2s; }
+        .pixel.active { background: #2c3e50; border-color: #2c3e50; }
+        .controls { margin-top: 25px; }
+        button { padding: 12px 18px; margin: 5px; cursor: pointer; border-radius: 6px; border: none; font-weight: bold; transition: transform 0.1s; }
+        button:active { transform: scale(0.95); }
+        /*btn short for button*/
+        .btn-annotate { background: #3498db; color: white; }
+        .btn-generate { background: #9b59b6; color: white; }
+        .btn-train { background: #27ae60; color: white; }
+        .btn-predict { background: #f1c40f; color: #333; }
+        .btn-clear { background: #e74c3c; color: white; }
+        #status { font-size: 1.2em; font-weight: bold; color: #2c3e50; margin-top: 20px; min-height: 1.5em; }
+        .data-log { font-size: 0.9em; color: #7f8c8d; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-    <h1>Perceptron: L vs T</h1>
-    <p>Draw an 'L' or 'T' on the grid below.</p>
+    <h1>Perceptron Classifier (4x4)</h1>
+    <p>Draw an <strong>L</strong> or <strong>T</strong> on the 16-pixel grid.</p>
 
     <div id="grid">
-        <div class="pixel" onclick="toggle(this)" data-idx="0"></div>
-        <div class="pixel" onclick="toggle(this)" data-idx="1"></div>
-        <div class="pixel" onclick="toggle(this)" data-idx="2"></div>
-        <div class="pixel" onclick="toggle(this)" data-idx="3"></div>
-        <div class="pixel" onclick="toggle(this)" data-idx="4"></div>
-        <div class="pixel" onclick="toggle(this)" data-idx="5"></div>
-        <div class="pixel" onclick="toggle(this)" data-idx="6"></div>
-        <div class="pixel" onclick="toggle(this)" data-idx="7"></div>
-        <div class="pixel" onclick="toggle(this)" data-idx="8"></div>
+        <script>
+            for(let i=0; i<16; i++) {
+                document.write(`<div class="pixel" onclick="toggle(this)" data-idx="${i}"></div>`);
+            }
+        </script>
     </div>
-
+/* creating the controls */
     <div class="controls">
-        <button onclick="addSample(1)">Annotate as "L" (1)</button>
-        <button onclick="addSample(0)">Annotate as "T" (0)</button>
+        <button class="btn-annotate" onclick="addSample(1)">Annotate as "L" (1)</button>
+        <button class="btn-annotate" onclick="addSample(0)">Annotate as "T" (0)</button>
         <br>
-        <button onclick="autoGenerate100()" style="background: #e1f5fe;">Generate 100 Samples</button>
-        <button onclick="train()" style="background: #c8e6c9;">Train Perceptron</button>
-        <button onclick="predict()" style="background: #fff9c4;">Classify Grid</button>
-        <button onclick="clearGrid()">Clear Grid</button>
+        <button class="btn-generate" onclick="autoGenerate100()">Generate 100 Samples</button>
+        <button class="btn-train" onclick="train()">Train Model</button>
+        <button class="btn-predict" onclick="predict()">Classify Current Grid</button>
+        <button class="btn-clear" onclick="clearGrid()">Clear</button>
     </div>
 
     <div id="status">Ready</div>
     <div class="data-log" id="log">Samples Collected: 0</div>
 
     <script>
-        // Data and Perceptron Variables
-        let trainingData = []; // {input: [9 bits], label: 0 or 1}
-        let weights = new Array(9).fill(0);
+        let trainingData = []; 
+        let weights = new Array(16).fill(0); // 16 weights for 4x4
         let bias = 0;
         let lr = 0.1;
 
-        // UI Logic: Toggle grid pixels
-        function toggle(el) {
-            el.classList.toggle('active');
-        }
+        function toggle(el) { el.classList.toggle('active'); }
 
         function clearGrid() {
             document.querySelectorAll('.pixel').forEach(p => p.classList.remove('active'));
@@ -64,57 +75,54 @@
             return Array.from(document.querySelectorAll('.pixel')).map(p => p.classList.contains('active') ? 1 : 0);
         }
 
-        // Annotation: Add current grid to training set
         function addSample(label) {
             const input = getGridInput();
             trainingData.push({ input, label });
             updateLog();
             clearGrid();
-            document.getElementById('status').innerText = "Added sample for " + (label === 1 ? 'L' : 'T');
+            document.getElementById('status').innerText = "Saved " + (label === 1 ? 'L' : 'T') + " sample.";
         }
 
         function updateLog() {
             document.getElementById('log').innerText = `Samples Collected: ${trainingData.length}`;
         }
 
-        // Requirement: Minimum 100 samples
-        // Generates variations of L and T by adding slight noise to base patterns
         function autoGenerate100() {
-            const baseL = [1,0,0, 1,0,0, 1,1,1];
-            const baseT = [1,1,1, 0,1,0, 0,1,0];
+            // Base patterns for 4x4
+            const baseL = [1,0,0,0, 1,0,0,0, 1,0,0,0, 1,1,1,1];
+            const baseT = [1,1,1,1, 0,1,1,0, 0,1,1,0, 0,1,1,0];
 
             for (let i = 0; i < 50; i++) {
                 trainingData.push({ input: addNoise(baseL), label: 1 });
                 trainingData.push({ input: addNoise(baseT), label: 0 });
             }
             updateLog();
-            document.getElementById('status').innerText = "Generated 100 samples (50 L, 50 T)";
+            document.getElementById('status').innerText = "100 Samples Generated!";
         }
-
+/* adding noise to better predict custom patterns (may not be accurate) */
         function addNoise(pattern) {
             let noisy = [...pattern];
-            // Randomly flip 1 pixel to create a variation
-            let idx = Math.floor(Math.random() * 9);
-            noisy[idx] = noisy[idx] === 1 ? 0 : 1;
+            let flips = Math.floor(Math.random() * 2) + 1; // Flip 1 or 2 pixels for variety
+            for(let i=0; i<flips; i++) {
+                let idx = Math.floor(Math.random() * 16);
+                noisy[idx] = noisy[idx] === 1 ? 0 : 1;
+            }
             return noisy;
         }
-
-        // Perceptron Algorithm
+/* Training function */
         function train() {
-            if (trainingData.length === 0) return alert("Add data first!");
+            if (trainingData.length < 10) return alert("Please add or generate more data first!");
             
-            // Train for 50 epochs
-            for (let epoch = 0; epoch < 50; epoch++) {
+            for (let epoch = 0; epoch < 100; epoch++) {
                 trainingData.forEach(sample => {
                     let sum = bias;
-                    for (let i = 0; i < 9; i++) sum += sample.input[i] * weights[i];
+                    for (let i = 0; i < 16; i++) sum += sample.input[i] * weights[i];
                     
                     let prediction = sum > 0 ? 1 : 0;
                     let error = sample.label - prediction;
 
-                    // Update Weights and Bias
                     if (error !== 0) {
-                        for (let i = 0; i < 9; i++) {
+                        for (let i = 0; i < 16; i++) {
                             weights[i] += lr * error * sample.input[i];
                         }
                         bias += lr * error;
@@ -123,11 +131,19 @@
             }
             document.getElementById('status').innerText = "Training Complete!";
         }
-
+/* prediction function */
         function predict() {
             const input = getGridInput();
             let sum = bias;
-            for (let i = 0; i < 9; i++) sum += input[i] * weights[i];
+            for (let i = 0; i < 16; i++) sum += input[i] * weights[i];
+            
+            let result = sum > 0 ? "L" : "T";
+            document.getElementById('status').style.color = (result === "L") ? "#2980b9" : "#c0392b";
+            document.getElementById('status').innerText = "Prediction: " + result;
+        }
+    </script>
+</body>
+</html>
             
             let result = sum > 0 ? "L" : "T";
             document.getElementById('status').innerText = "Prediction: " + result;
